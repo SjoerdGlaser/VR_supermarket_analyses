@@ -1,3 +1,9 @@
+# VR Supermarkt: function to extract how much time was spent in different aisles.
+#
+# Last edited 2018-10-18 by Laurent Smeets (l.s.m.smeets@uu.nl)
+
+
+
 getAisleTimes <- function(data, FootPosition, time, gg,
                           aisles, full.images, save.data, i){
   
@@ -7,21 +13,15 @@ getAisleTimes <- function(data, FootPosition, time, gg,
     # Create rectangles of aisles. append and $layers is used to plot
     # the rectangles and names UNDER the path
     suppressWarnings(
-      gg.aisles$layers <- append(gg.aisles$layers,
+      gg.aisles  <- gg.aisles+
                                  geom_rect(data = aisles,
                                            mapping = aes(xmin = xmin, xmax = xmax,
                                                          ymin = zmin, ymax = zmax,
-                                                         colour = colour, x = x, y = y), 
-                                           fill = 'red', alpha = .3),
-                                 after = 1)
-    )
-    
-    gg.aisles$layers <- append(gg.aisles$layers,
-                               geom_label(data = aisles, 
-                                          mapping = aes(x = xmin, y = zmin, 
-                                                        label = aisles$aisle.names),
-                                          label.size = .32),
-                               after = 2)
+                                                         colour = colour, x = x, y = y, fill=factor(type)), 
+                                           alpha = .3)+
+        geom_label(data = aisles,
+                   mapping = aes(x = xmin, y = zmin, label = aisles$aisle.names),
+                    label.size = .32))
   } else {
     gg.aisles <- gg
   }
@@ -33,6 +33,8 @@ getAisleTimes <- function(data, FootPosition, time, gg,
       -position[2] > aisles$zmin & -position[2] < aisles$zmax
   }
   
+  
+  
   # a is a matrix with [n.aisles, n.time points] with T or F.
   # T indicating that timepoint was spent in that aisle
   a <- apply(FootPosition[, c(1, 3)], 1, CheckPathInAisle, aisles = aisles)
@@ -41,8 +43,8 @@ getAisleTimes <- function(data, FootPosition, time, gg,
   aisle.time.points <- t[, 2]
   
   if(any(a) &  save.data){
-    time.in.aisle <- time[t[c(diff(t[,2]) > 1, T), 2]] - time[t[c(T, diff(t[,2]) > 1), 2]] #time spent in each aisle (which aisle is speficied later)
-    times.through.aisle <- t[c(T, diff(t[,2]) > 1), ]
+    time.in.aisle <- time[t[c(diff(t[,1]) != 0, T), 2]] - time[t[c(T, diff(t[,1]) != 0), 2]] #time spent in each aisle (which aisle is speficied later)
+    times.through.aisle <- t[c(TRUE, diff(t[,1]) != 0), ] # dit klopt niet
     times.through.aisle <- data.frame(aisles$aisle.names[times.through.aisle[, 1]], times.through.aisle, time.in.aisle)
     colnames(times.through.aisle)[1:3] <- c("aisle.names", "aisle", "Entry.time.point")
     times.through.aisle$aisle.names <- factor(times.through.aisle$aisle.names, levels = aisles$aisle.names)
@@ -51,23 +53,62 @@ getAisleTimes <- function(data, FootPosition, time, gg,
     #entry time point, when someone entered that aisle
     #time.in.aisle, time spent in each aisle
     
+    #Count number of times in each aisle
+    #data[i, 4:17] <- table(times.through.aisle$aisle.names) 
+    table.times.through<-table(times.through.aisle$aisle.names)
+    data[i,]<-mutate(data[i,],
+                     n.aisle.1A= table.times.through[1],
+                     n.aisle.2A= table.times.through[2],
+                     n.aisle.3A= table.times.through[3],
+                     n.aisle.4A= table.times.through[4],
+                     n.aisle.5A= table.times.through[5],
+                     n.aisle.1B= table.times.through[6],
+                     n.aisle.2B= table.times.through[7],
+                     n.aisle.3B= table.times.through[8],
+                     n.aisle.4B= table.times.through[9],
+                     n.aisle.5B= table.times.through[10],
+                     n.aisle.6B= table.times.through[11],
+                     n.aisle.M1= table.times.through[12],
+                     n.aisle.M2= table.times.through[13],
+                     n.aisle.M3= table.times.through[14])
     
-    data[i, 4:14] <- table(times.through.aisle$aisle.names) #Count number of times in each aisle
+    
     #Calculate total time in each aisle
     aisle.times <- tapply(times.through.aisle$time.in.aisle, 
                           list(Category = times.through.aisle$aisle.names), 
                           FUN = sum)
     aisle.times[is.na(aisle.times)] <- 0
-    data[i, 15:25] <- aisle.times
     
     
-  } else {
-    data[i, 4:25] <- 0
-  }
+    data[i,]<-mutate(data[i,],
+                     time.aisle.1A= aisle.times[1],
+                     time.aisle.2A= aisle.times[2],
+                     time.aisle.3A= aisle.times[3],
+                     time.aisle.4A= aisle.times[4],
+                     time.aisle.5A= aisle.times[5],
+                     time.aisle.1B= aisle.times[6],
+                     time.aisle.2B= aisle.times[7],
+                     time.aisle.3B= aisle.times[8],
+                     time.aisle.4B= aisle.times[9],
+                     time.aisle.5B= aisle.times[10],
+                     time.aisle.6B= aisle.times[11],
+                     time.aisle.M1= aisle.times[12],
+                     time.aisle.M2= aisle.times[13],
+                     time.aisle.M3= aisle.times[14])
+    
+    
+  } 
+  # check, per coordinate whether they are in an aisle or not.
+  a.shoppingaisles <- apply(FootPosition[, c(1, 3)], 1, CheckPathInAisle, aisles = filter(aisles, type=="shopping"))
+  t.shoppingaisles <- which(a.shoppingaisles, arr.ind = TRUE)
+  shopping.aisle.time.points <- t.shoppingaisles[, 2]
+  
+  
   
   res.aisles <- list(gg.aisles = gg.aisles,
                      data = data,
-                     aisle.time.points = aisle.time.points)
+                     aisle.time.points = aisle.time.points,
+                     shopping.aisle.time.points=shopping.aisle.time.points)
   return(res.aisles)
 }
 
