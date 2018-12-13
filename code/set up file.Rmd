@@ -1,0 +1,337 @@
+---
+title: "Set up VR Analysis"
+author: "Laurent Smeets"
+date: "13 december 2018"
+output: html_document
+---
+This document explains the set up of the R code that is used to distill features from the VR files.
+
+
+## Set up Parameters
+
+As a first step it is important to define certain parameters in the **config.R** file. In this short file different parameters are controlled.
+
+### 1) Image
+
+Use this line to name the image which will form the background of the plots. This image has to be in the folder named *input*.
+
+```{r, eval=F, echo=T}
+img.name = 'Supermarkt2.png',
+```
+
+### 2) Input/output folders
+
+Use these 3 lines to set the name of folder with the input files, and the name of the folder where the output will go. This folders has to be within the folder named *input*.
+
+```{r, eval=F, echo=T}
+  # directory with input files
+  input.dir = "test",
+  # directory with output files
+  output.dir = "test2",
+```
+
+### 3) Saving options
+
+Here you can control what time of files you would like to save as output.
+
+```{r, eval=F, echo=T}
+  raw.images    = TRUE,     # Images with just the path
+  full.images   = TRUE,     # Images with path + aisles, stops, crosses, etc.
+  save.data     = TRUE,     # should stops, slows etc. be saved.
+  save.to.excel = FALSE,    # should stops, slows etc. be saved.to an excel file
+  make.gif      = FALSE,    # Gif of a path (DOES NOT WORK RIGHT NOW)
+```
+
+### 4) Ecel sheet parameters
+
+These 4 lines of code are used to make sure R reads the excel file with data on the respondents correctly. You set on which sheet are the data points related to analysis (hits, time, avatar, etc.), on which sheets are the personal data, on which sheet is the NPO data, and how many rows of data points there are (number of respondents). We also define in which range of the excel sheet is relevant data and which range there is information R does not ned to load.
+
+```{r, eval=F, echo=T}
+  sheet.excel  = 2,        # On which sheet are the data point
+  sheet.excel2 = 1,        # On which sheet are the personal data
+  sheet.excel3 = 3,        # On which sheet are the NPO data
+  n.row.excel  = 74,       # How many rows of data points are there
+  
+  range.personal = "A1:H",
+  range.NPO      = "A1:V",
+```
+
+### 5) Stop, slow, and crossing parameters
+
+Here you set the parameters that define a stop, slow, and crossing.
+
+```{r, eval=F, echo=T}
+    # Stops measures the amount of stops. A stop is defined as less than 
+    # stop.radius movement in at least stop.time from a point
+    stops = list(
+      stop.time = 2,      # seconds of stopping
+      stop.radius = 0.25  # meters of walking
+    ),
+    
+    # Slows measures the times someone has slowed. Is defined the same as a
+    # stop, but with different numbers
+    slows = list(
+      slow.time = 4,   # seconds of stopping
+      slow.radius = 1    # meters of walking
+    ),
+    
+    # Crossings
+    cross = list(
+      cross.lag1 = 3, #Time required for a path to cross itself before it counts as a crossing
+      cross.lag2 = 3  #Minimum time required between two crossings
+    ),
+```
+
+### 6) Products and aisles
+
+Here you can set up where in the VR supermarket different products can be found and how the supermarket looks like.
+First set the max number of products in the supermarket, then we list where the different aisles are, based on the design of the supermarket, and then we assign the the location of the products.
+
+```{r, eval=F, echo=T}
+number.of.items = 8,  # total number of items in supermarket people can pick up.
+    
+    # Aisles, both names and coordinates are defined here
+    aisles = data.frame(xmin = c(rep(c(5, 9.2, 13, 17, 21), 2), 25.2, rep(5,3)),
+                        xmax = c(rep(c(8.5, 12.3, 16.3, 20.3, 24.5), 2), 29.3, c(24.5 , 29.3, 29.3)),
+                        zmin = c(rep(-37.5, 5), rep(-24.9, 6), c(-42, -30.2, -13.8)),
+                        zmax = c(rep(-30.3, 5), rep(-13.9, 6),  c(-37.6, -25, -10)), 
+                        aisle.names = c(paste0(rep(1:5, 2), rep(LETTERS[1:2], each = 5)), "6B", "M1", "M2", "M3"), # Names of aisles
+                        x = 1, y = 1, colour = 1, # Required for gg plot to work (don't ask why)
+                        type= c(rep("shopping", 11), rep("main", 3))),
+    
+    
+    #These are the exact locations of the product
+    products = data.frame(x =             c( 16.3,  17.2,   13.1,   24.3,   12.3,  24.3,   8.3,   12.9     ),  
+                          z =             c(-18.3, -34.4,  -32.9,  -17.2,  -37.2, -15.6,  -21.9, -37.9     ),
+                          height =        c(3.3,    3.3,    3.3,    3.3,    3.3,   3.3,    3.3,  .3        ),
+                          width =         c(1.5,   1.5,    1.5,    1.5,    1.5,    1.5,   1.5,    3.3        ),
+                          up.down.side =  c("up", "down", "down" , "up",   "up",   "up",   "up", "sideleft"),
+                          announced =     c(FALSE, FALSE,  FALSE,  FALSE,  FALSE,  FALSE,  FALSE, TRUE     ),
+                          productnumber = c("P1",   "P2",  "P3",    "P4",   "P5",  "P6",  "P7",   "P8"     ),
+                          x = 1, y = 1, colour = 1)
+    # possible value for up.down.side: "up", "down", "sideleft", "sideright"
+```
+
+
+## Run analysis
+
+To run the analysis open the **Run.R** file in the *code* folder. 
+
+
+### 1) Set working directory 
+
+If you copied the code from Github and did not fork the project.R file you have to set a working directory:
+
+```{r, eval=F, echo=T}
+setwd("C:/Users/etc/etc/etc)
+```
+
+### 2) Install and load packages
+ 
+
+Now we can load the packages we need for the code 
+
+```{r, eval=F, echo=T}
+packages <- c("jsonlite", "tidyverse", "png", "ggforce",
+              "ggalt", "Rcpp", "grid", "gganimate")
+lapply(packages, require, character.only = TRUE)
+
+```
+
+
+### 3) Load features
+
+With this code we load all the R code and functions that are used to create features, the code for these functions is stored in the folder *features* (inside the folder *code*). We also load the configuration file, we defined above
+
+```{r, eval=F, echo=T}
+source("code/config.R") # load the configuration file
+sapply(list.files("code/features", full.names = TRUE, '.R'), source) # load FE funcs
+sourceCpp('code/features/cppDoLinesIntersect.cpp') # load the C function that calculates crossings
+```
+
+### 4) load the data
+
+With this code we first load the image we use as background for the plots. Secondly we create a list with the names of all the JSON data files with the raw location data from the VR study. Thirdly we load the Excel sheet of the Excel document with the hits of the respondents. 
+
+```{r, eval=F, echo=T}
+# Load image
+image <- readPNG(paste0('input/', params$img.name))
+
+# get data files
+data.files <- list.files(
+  path = file.path("input", params$input.dir),
+  pattern = 'json',
+  full.names = FALSE
+)
+
+# get the excel sheet
+data.files2 <- list.files(
+  path = file.path("input", params$input.dir),
+  pattern = 'xlsx',
+  full.names = FALSE
+)
+
+# load the excelsheet with the hits of the respondents
+Excel<-readxl::read_excel(path= file.path("input", params$input.dir, data.files2), 
+                                          sheet=params$sheet.excel,
+                                          n_max=params$n.row.excel)
+
+
+```
+
+
+
+### 5) Create an empty data set.
+
+Now we create an empty data table with on the rows all the respondents and in the collumns the different features we distinguish.
+
+```{r, eval=F, echo=T}
+# Create data frame to save results
+data <- createDataFrame(data.files)
+```
+
+
+### 6) Run the code of the features 
+
+By using a `for loop` over the different respondents we run the different function that are used to create features over the respondents one by one
+
+```{r, eval=F, echo=T}
+
+# loop over all the participants 
+for(i in 1 : length(data.files)){
+  JSONfile <- data.files[i]
+  
+  res <- runFirstAnalyses(JSONfile = JSONfile, image = image, 
+                          raw.images = params$raw.images, 
+                          save.data = params$save.data, 
+                          data = data,
+                          input.dir = params$input.dir, 
+                          output.dir = params$output.dir,
+                          products = params$features$products,
+                          i = i)
+  
+  if(params$save.data | params$full.images){
+    res.aisles <- getAisleTimes(data = res$data,
+                                FootPosition = res$FootPosition,
+                                time = res$time,
+                                gg = res$gg,
+                                aisles = params$features$aisles,
+                                full.images = params$full.images,
+                                save.data = params$save.data,
+                                i = i)
+    
+    res.cross <- getCrossings(data = res.aisles$data,
+                              FootPosition = res$FootPosition,
+                              time = res$time,
+                              gg = res.aisles$gg.aisles,
+                              shopping.aisle.time.points = res.aisles$shopping.aisle.time.points,
+                              aisles = params$features$aisles,
+                              cross.lag1 = params$features$cross$cross.lag1,
+                              cross.lag2 = params$features$cross$cross.lag2,
+                              full.images = params$full.images,
+                              i = i)
+    
+    res.stops <- getStops(data = res.cross$data,
+                          FootPosition = res$FootPosition,
+                          time = res$time,
+                          gg = res.cross$gg.cross,
+                          stop.time = params$features$stops$stop.time,
+                          stop.radius = params$features$stops$stop.radius,
+                          full.images = params$full.images,
+                          productsbox = res$productbox,
+                          save.data = params$save.data,
+                          i = i)
+    
+    res.products <- WalkpastProduct(data = res.stops$data,
+                                   FootPosition = res$FootPosition,
+                                   time = res$time,
+                                   gg = res.stops$gg,
+                                   products =  res$productbox,
+                                   products2 = params$features$products, 
+                                   full.images = params$full.images,
+                                   save.data = params$save.data,
+                                   i = i)
+    
+    res.slows <- getSlows(data = res.products$data, 
+                          FootPosition = res$FootPosition, 
+                          time = res$time, 
+                          gg = res.products$gg.products,
+                          stop.points = res.stops$stop.points, 
+                          slow.time = params$features$slows$slow.time, 
+                          slow.radius = params$features$slows$slow.radius,
+                          producttimepoint.time.points = res.products$producttimepoint.time.points,
+                          full.images = params$full.images,
+                          save.data = params$save.data, 
+                          i = i)
+    data <- res.slows$data  
+```
+
+### 7) Create the plots
+
+This part of the code is used to create the plots, if we defined in the *config.R* file that we want to save the plots.
+
+```{r, eval=F, echo=T}
+
+if(params$full.images){
+      if( ! file.exists(paste0('output/png/', params$output.dir))){
+        dir.create(paste0('output/png/', params$output.dir))
+      }
+      # Save variables required for ggplot in global environment 
+      # (ggplot cannot handle variables created in functions)
+      aisles <- params$features$aisles
+      aisles2 <- params$features$aisles2
+      n.crossings <- res.cross$n.crossings
+      stop.radius <- params$features$stops$stop.radius
+      n.stops <- res.stops$n.stops
+      n.stops.before.item<-res.stops$n.stops.before.item
+      n.slows <- res.slows$n.slows
+      n.slows.before.item<-res.slows$n.slows.before.item
+      productsbox <- params$features$products1
+      productslocation <- params$features$products2
+      
+      #JSONfile <- substr(JSONfile, 1, 21)
+      ggsave(paste0('output/png/', params$output.dir, '/', JSONfile, '.png'), 
+      res.slows$gg.slows, width = 37.5, height = 21, units = 'cm')
+    }
+  }
+}
+
+```
+
+
+
+### 8) Enrich data 
+
+This code makes sure that the personal and NPO data is correctly loaded and attached to the data table with all the features of the respondents.
+
+```{r, eval=F, echo=T}
+# merge data from other excel sheets with other test results
+Excel.personal <- readxl::read_excel(path = file.path("input", params$input.dir, data.files2), 
+                                     sheet = params$sheet.excel2,
+                                     range = paste0(params$range.personal, params$n.row.excel))
+
+Excel.NPO<-readxl::read_excel(path  = file.path("input", params$input.dir, data.files2), 
+                              sheet = params$sheet.excel3,
+                              range = paste0(params$range.NPO, params$n.row.excel))
+
+
+# for some reason distance doesnt really work yet so it is calculated here
+datamerged <- 
+  left_join(data, select(Excel.personal, -VR_aborted, -Avatars), by = "ID" ) %>%
+  left_join(select(Excel.NPO, -education, -age), by = "ID" ) %>% 
+  mutate(distance = total.time*average.speed)
+
+```
+
+
+### 9) Save data set
+
+This coad can be used to save final data table as a csv
+
+```{r, eval=F, echo=T}
+# save the data to an excel sheet
+if(params$save.to.excel){
+  write.csv2(datamerged, file = "output/csv/data6.csv", row.names = FALSE)
+}
+```
+
