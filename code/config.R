@@ -19,15 +19,19 @@ params <- list(
   # what output is saved (TRUE/FALSE)
   # It is adviced that full.images and save.data are both either TRUE or FALSE.
   # This ensures the features and the images shown always correspond.
-  raw.images = TRUE,    #Images with just the path
-  full.images = TRUE,   # Images with path + aisles, stops, crosses, etc.
-  save.data = TRUE,     # should stops, slows etc. be saved.
-  save.to.excel= FALSE, # should stops, slows etc. be saved.to an excel file
-  make.gif = FALSE,     # Gif of a path DOES NOT WORK RIGHT NOW
-  sheet.excel=2,        # On which sheet are the data point
-  sheet.excel2=1,        # On which sheet are the personal data
-  sheet.excel3=3,        # On which sheet are the NPO data
-  n.row.excel= 74,      # How many rows of data points are there
+  raw.images    = TRUE,     # Images with just the path
+  full.images   = TRUE,     # Images with path + aisles, stops, crosses, etc.
+  save.data     = TRUE,     # should stops, slows etc. be saved.
+  save.to.excel = FALSE,    # should stops, slows etc. be saved.to an excel file
+  make.gif      = FALSE,    # Gif of a path (DOES NOT WORK RIGHT NOW)
+  
+  sheet.excel  = 2,        # On which sheet are the data point
+  sheet.excel2 = 1,        # On which sheet are the personal data
+  sheet.excel3 = 3,        # On which sheet are the NPO data
+  n.row.excel  = 74,       # How many rows of data points are there
+  
+  range.personal = "A1:H",
+  range.NPO      = "A1:V",
   
   features = list(
 
