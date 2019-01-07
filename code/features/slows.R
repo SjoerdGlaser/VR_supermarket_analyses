@@ -44,20 +44,26 @@ getSlows <- function(data, FootPosition, time, gg,
   slows.elsewhere <- n.slows-n.slows.before.item
   
   
+  
   slow.begin.slow<-slow$begin.slow
   slow.end.slow<-slow$end.slow
   frame<-tibble(slow.end.slow=slow.end.slow,obs=1:length(slow.end.slow)) %>%
     filter(slow.end.slow!=0)
-  listslowpoint<-list()
-  for(g in 1:nrow(frame)){
-    listslowpoint[[g]]<-as.numeric(frame[g,2]):as.numeric(frame[g,1])
+  if(nrow(frame)==0){
+    n.slows.before.item2 <- 0
+    slows.elsewhere2 <- 0
+  }else{
+    listslowpoint<-list()
+    for(g in 1:nrow(frame)){
+      listslowpoint[[g]]<-as.numeric(frame[g,2]):as.numeric(frame[g,1])
+    }
+    sumslowpoints<-c()  
+    for(w in 1:length(listslowpoint)){
+      sumslowpoints[w]<-sum(listslowpoint[[w]] %in%producttimepoint.time.points)
+    }
+    n.slows.before.item2<-sum(sumslowpoints!=0)
+    slows.elsewhere2 <- n.slows-n.slows.before.item2
   }
-  sumslowpoints<-c()  
-  for(w in 1:length(listslowpoint)){
-    sumslowpoints[w]<-sum(listslowpoint[[w]] %in%producttimepoint.time.points)
-  }
-  n.slows.before.item2<-sum(sumslowpoints!=0)
-  slows.elsewhere2 <- n.slows-n.slows.before.item2
   
   
   ## the .2 version check whether a slow is during any point near the product
