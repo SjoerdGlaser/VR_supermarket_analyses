@@ -35,7 +35,8 @@ data.files2 <- list.files(
 # load the excelsheet with the hits of the respondents
 Excel<-readxl::read_excel(path= file.path("input", params$input.dir, data.files2), 
                                           sheet=params$sheet.excel,
-                                          n_max=params$n.row.excel)
+                                          n_max=params$n.row.excel)%>%
+  mutate(ID = as.character(ID))
 
 
 
@@ -142,11 +143,13 @@ for(i in 1 : length(data.files)){
 # merge data from other excel sheets with other test results
 Excel.personal <- readxl::read_excel(path = file.path("input", params$input.dir, data.files2), 
                                      sheet = params$sheet.excel2,
-                                     range = paste0(params$range.personal, params$n.row.excel))
+                                     range = paste0(params$range.personal, params$n.row.excel)) %>%
+  mutate(ID = as.character(ID))
 
 Excel.NPO<-readxl::read_excel(path  = file.path("input", params$input.dir, data.files2), 
                               sheet = params$sheet.excel3,
-                              range = paste0(params$range.NPO, params$n.row.excel))
+                              range = paste0(params$range.NPO, params$n.row.excel))%>%
+  mutate(ID = as.character(ID))
 
 
 # for some reason distance doesnt really work yet so it is calculated here
