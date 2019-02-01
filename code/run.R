@@ -155,7 +155,7 @@ for(i in 1 : length(data.files)){
         left_join(select(Excel.NPO, -education, -age), by = "ID" ) %>% 
         mutate(distance = total.time*average.speed)
       
-      write.csv2(datamerged, file = paste0("output/csv_temp/data6_", i, ".csv"), row.names = FALSE)
+      write.csv2(datamerged, file = paste0("output/csv_temp/data_until_file_", i, ".csv"), row.names = FALSE)
       
     }
   }
