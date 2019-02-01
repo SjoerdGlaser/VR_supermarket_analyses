@@ -21,13 +21,13 @@ WalkpastProduct<-function(data,
     
     cols<-c("main"= "#00BFC4","shopping"= "#F8766D", "TRUE"="lightgreen", "FALSE"="red")
     
-    if(data$total.time[i]>300){
+    if(data$total.time[i]>180){
       productbox2<-products
     } else{
       productbox2<-filter(products, announced != TRUE)
     }
     
-    if(data$total.time[i]>300){
+    if(data$total.time[i]>180){
       productslocation2<-products2
     } else{
       productslocation2<-filter(products2, announced != TRUE)
