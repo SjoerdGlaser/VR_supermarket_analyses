@@ -136,6 +136,27 @@ for(i in 1 : length(data.files)){
       #JSONfile <- substr(JSONfile, 1, 21)
       ggsave(paste0('output/png/', params$output.dir, '/', JSONfile, '.png'), 
       res.slows$gg.slows, width = 37.5, height = 21, units = 'cm')
+      
+      # merge data from other excel sheets with other test results
+      Excel.personal <- readxl::read_excel(path = file.path("input", params$input.dir, data.files2), 
+                                           sheet = params$sheet.excel2,
+                                           range = paste0(params$range.personal, params$n.row.excel)) %>%
+        mutate(ID = as.character(ID))
+      
+      Excel.NPO<-readxl::read_excel(path  = file.path("input", params$input.dir, data.files2), 
+                                    sheet = params$sheet.excel3,
+                                    range = paste0(params$range.NPO, params$n.row.excel))%>%
+        mutate(ID = as.character(ID))
+      
+      
+      # for some reason distance doesnt really work yet so it is calculated here
+      datamerged <- 
+        left_join(data, select(Excel.personal, -VR_aborted, -Avatars), by = "ID" ) %>%
+        left_join(select(Excel.NPO, -education, -age), by = "ID" ) %>% 
+        mutate(distance = total.time*average.speed)
+      
+      write.csv2(datamerged, file = paste0("output/csv_temp/data6_", i, ".csv"), row.names = FALSE)
+      
     }
   }
 }
