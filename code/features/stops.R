@@ -1,5 +1,11 @@
+# VR Supermarkt: function to extract the stops.
+#
+# Last edited 2018-10-18 by Laurent Smeets (l.s.m.smeets@uu.nl)
+
+
+
 getStops <- function(data, FootPosition, time, gg,
-                     stop.time, stop.radius,
+                     stop.time, stop.radius, productsbox,
                      save.data, full.images, i){
   
   final.step <- first(which(time > max(time) - stop.time)) - 1
@@ -32,13 +38,77 @@ getStops <- function(data, FootPosition, time, gg,
     }
   }
   
+  #####
+  stop.begin.stop<-stop$begin.stop
+  stop.end.stop<-stop$end.stop
+  
+  
+  frame1<-tibble(stop.end.stop=stop.end.stop,obs=1:length(stop.end.stop), time.beginning=time) %>%
+    filter(stop.end.stop!=0)
+  
+  frame2<-tibble(time.end=time, observation=1:length(time))%>%
+    filter(observation%in%frame1$stop.end.stop)%>%
+    bind_cols(frame1) %>%
+    select(-observation) %>%
+    mutate(stopduration=time.end-time.beginning)
+  
+  data$total.stoping.time[i]<-sum(frame2$stopduration)
+  
+  #####
+  
+  
   stop.points <- which(stop[, 1])
   
   stop.start.points <- which(stop[, 2] != 0)
   n.stops <- length(stop.start.points)
   stop.pos <- FootPosition[stop.start.points, ]
   
+  Checkstopbeforeitem <- function(position, productsbox){
+    position[1] > productsbox$xmin & position[1] < productsbox$xmax &
+      -position[2] > productsbox$zmin & -position[2] < productsbox$zmax
+  }
+  
+  
+  a <- apply(stop.pos[, c(1, 3)], 1, Checkstopbeforeitem, productsbox = productsbox)
+  t <- which(a, arr.ind = TRUE)
+  n.stops.before.item<-nrow(t)
+  
+  stops.elsewhere<- n.stops-n.stops.before.item
+  
   data$n.stops[i] <- n.stops
+  
+  if(any(n.stops.before.item)){
+  data$n.stops.item[i] <- n.stops.before.item
+  }
+  else{
+    data$n.stops.item[i] <- 0
+  }
+  if(any(stops.elsewhere)){
+    data$n.stops.elsewhere[i]<- stops.elsewhere
+  }
+  else{
+    data$n.stops.elsewhere[i]<- 0
+  }
+  
+  
+  
+  
+  #split slows per third.
+  
+  
+  stoppointstibble<-tibble(stoppoints=stop.start.points)
+  split1<-which.min(abs(time - last(time)/3)) 
+  split2<-which.min(abs(time - (last(time)/3*2)))
+  
+  stops.1st.1.3rd<-nrow(filter(stoppointstibble, stoppoints<split1))
+  stops.2nd.1.3rd<-nrow(filter(stoppointstibble, stoppoints>split1 & stoppoints<split2))
+  stops.3rd.1.3rd<-nrow(filter(stoppointstibble, stoppoints>split2))
+
+  data$stops.1st.1.3rd[i]<-stops.1st.1.3rd
+  data$stops.2nd.1.3rd[i]<-stops.2nd.1.3rd
+  data$stops.3rd.1.3rd[i]<-stops.3rd.1.3rd
+
+  
   
   res <- list()
   
@@ -56,15 +126,18 @@ getStops <- function(data, FootPosition, time, gg,
     
     gg.stops <- gg.stops +
       geom_text(aes(y = -48, x = 2, 
-                    label = paste("N stops = ", n.stops)),
+                    label = paste("N stops = ", n.stops, "(",n.stops.before.item, ")" )),
                 size = 5,
                 colour = 'green')
   }
   
   res.stops <- list(gg.stops = gg.stops,
                     stop.points = list(stop.points),
-                    data = list(data),
-                    n.stops = n.stops)
+                    data = data,
+                    n.stops = n.stops,
+                    stop.points=stop.points,
+                    stop.pos=stop.pos,
+                    n.stops.before.item=n.stops.before.item)
   
   return(res.stops)
 }
